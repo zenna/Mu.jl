@@ -1,8 +1,6 @@
 # module Pointwise
 
-using ..Var
-export pw, l, dl, ₚ, PwVar
-
+export pw, l, dl, ₚ, PwVar, liftapply
  
 """
 Pointwise application.
@@ -19,11 +17,11 @@ lift and dont lift respectively.
 
 Example:
 ```
-using Distributions
-x(ω) = Uniform(ω, 0, 1)
+using OmegaCore
+x = StdUniform()
 y = pw(+, x, 4)
 
-f(ω) = Bool(Bernoulli(ω, 0.5)) ? sqrt : sin
+f(ω) = Flip()(ω) ? sqrt : sin
 sample(pw(map, f, [0, 1, 2]))
 sample(pw(map, sqrt, [0, 1, 2])) # Will error!
 sample(pw(map, dl(sqrt), [0, 1, 2]))
@@ -65,6 +63,7 @@ traitlift(::Type{T}) where T  = DontLift()
 traitlift(::Type{<:Function}) = Lift()
 traitlift(::Type{<:Variable}) = Lift()
 traitlift(::Type{<:Member}) = Lift()
+traitlift(::Type{<:Mv}) = Lift()
 traitlift(::Type{<:DataType}) = DontLift()
 traitlift(::Type{<:LiftBox}) = Lift()
 traitlift(::Type{<:PwVar}) = Lift()
@@ -81,23 +80,14 @@ traitlift(::Type{<:DontLiftBox}) = DontLift()
 
 recurse(p::PwVar{Tuple{T1}}, ω) where {T1} =
   p.f(liftapply(p.args[1], ω))
-# recurse(p::PwVar{Tuple{T1}})(id, ω) where {T1} =
-#   p.f(liftapply(p.args[1], ω))(id, ω)
 
 recurse(p::PwVar{Tuple{T1, T2}}, ω) where {T1, T2} =
   p.f(liftapply(p.args[1], ω), liftapply(p.args[2], ω))
-# recurse(p::PwVar{Tuple{T1, T2}})(id, ω) where {T1, T2} =
-#   p.f(liftapply(p.args[1], ω), liftapply(p.args[2], ω))(id, ω)
-
-# Normal(x(ω), y(ω))(id, ω)
 
 recurse(p::PwVar{<:Tuple}, ω) =
-  p.f((liftapply(arg, ω) for arg in p.args)...)
-# recurse(p::PwVar{<:Tuple})(id, ω) =
-#   p.f(id, (liftapply(arg, ω) for arg in p.args)...)
+  p.f(map(arg -> liftapply(arg, ω), p.args)...)
 
 # # Notation
-
 
 # # Collections
 # @inline randcollection(xs) = ω -> 32(x -> liftapply(x, ω), xs)

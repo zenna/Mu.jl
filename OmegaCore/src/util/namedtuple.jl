@@ -11,10 +11,15 @@ rmkey(tag, Val{:c})
 """
 @generated function rmkey(nt::NamedTuple{K, V}, key::Type{Val{T}}) where {K, V, T}
   T isa Symbol || throw(ArgumentError("Usage: `rmkey(x, Val{:X})`"))
-  args = [:($k = nt.$k) for k in K if k != T]
+  # args = [:($k = nt.$k) for k in K if k != T]
+  ks = tuple((k for k in K if k != T)...)
+  vs = [:(nt.$k) for k in K if k != T]
   # FIXME: This can be made more efficient, using TAGS  
-  Expr(:tuple, args...)
+  # Expr(:tuple, args...)
+  :(NamedTuple{$ks}(($(vs...),)))
 end
+
+
 @post keys(@ret) == setdiff(keys(nt), key)
 @post all([res[k] == nt[k] for k in setdiff(keys(nt), key)])
 
@@ -36,6 +41,7 @@ update((x = 3, y = 2, z = 1), Val{:x}, 7)
       push!(args, :($k = nt.$k))
     end
   end
+  # FIXME, return named tuple
   Expr(:tuple, args...)
 end
 @post keys(res) == keys(nt)

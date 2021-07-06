@@ -2,18 +2,22 @@ module TrackError
 
 using ..Util, ..Tagging, ..Condition, ..Traits
 import ..Condition
-export applytrackerr, condvar, tagerror
+export applytrackerr, condvar, condvarapply, tagerror, initerror
 
-# Issue is that type of err value depends on
-# gradient method used
-# Solutions
-# Specialize: condvar/applytrackerr based on type of Omega
+
+# Options.
+#> condition on logerr, explicitly
+
+# Options
+# 1. Always initialize with correct type -- best performance
+# 2. Have nothing, small union ⊥ ∪ Float64
+# 3. Vector
 
 """
 `applytrackerr(x, ω, initerr)`
 
 Is `ω` in the domain of `x`?
-Returns `(f(ω), v)` where `v = ω ∈ dom(x)`
+Returns `(x(ω), v)` where `v = ω ∈ dom(x)`
 """
 function applytrackerr(x, ω, initerr)
   ω_ = tagerror(ω, initerr) # zt: surprisingly expensive
@@ -21,20 +25,27 @@ function applytrackerr(x, ω, initerr)
   (fx = fx, err = ω_.tags.err.val)
 end
 
-# tagnotrackerr(ω) = tag(ω, (donttrack = true,))
-# applynotrackerr(x, ω) = apl(x, tagnotrackerr(ω))
+"Equivalent to `condvar(x)(ω)`, but more efficient"
+condvarapply(x, ω, initerr) = applytrackerr(x, ω, initerr).err
+condvarapply(x, ω, errtype::Type{T}) where T =
+  condvarapply(x, ω, initerror(T))
 
-# "Soft `condvar`: distance from `ω` to the domain of `x`"
-# condvarₛ(x, ω, initerr = softtrue()) = applytrackerr(x, ω, initerr).err
-# condvarₛ(x) = ω -> condvarₛ(x, ω)
+logcondvarapply(x, ω) = condvarapply(x, ω)
 
-"Is `ω` in the domain of `x`?"
-condvar(x, ω, initerr = true) = applytrackerr(x, ω, initerr).err
-condvar(x) = ω -> condvar(x, ω)
+function initerror end
+initerror(::Type{Bool}) = true
+"""
+`condvar(x)`
 
-"Update `err` by conjoining cu`rrent error with `b`"
+Random variable that `x` is conditioned on.
+I.e. if `x` can be expressed as `x | y`, then `y = condvar(x)` 
+"""
+condvar(x, initerr) = ω -> condvarapply(x, ω, initerr)
+
+"Update `err` by conjoining current error with `b`"
 conjoinerror!(err::Box, b) = err.val &= b
 
+# Track error for this ω
 dotrack(ω) = !haskey(ω.tags, :donttrack) && haskey(ω.tags, :err)
 
 function Condition.condf(::trait(Err), ω, x, y)
@@ -47,15 +58,12 @@ function Condition.cond!(::trait(Err), ω, bool)
   bool
 end
 
-"Tag `ω` with `err`" 
-tagerror(ω, initerr) = tag(ω, (err = Box(initerr),))
+# conjoinerror!(ω.tags.err, y(ω))
+tagerror(::trait(Err), ω, initerr) = tag(ω,  (err = Box(initerr),))
+tagerror(traits, ω, initerr) = tag(ω, (err = Box(initerr),))
 
-# tagerror(ω, initerr::AbstractBool) = tag(ω, (err = Ref(initerr),)) #FIXME UNCOMMENT THIS AND SPECIALISE BELOW TO OMEGA
-# "Tag tω with error"
-# function tagerror(tω::TaggedΩ, initerr::AbstractBool)
-#   # If error already there, use that!
-#   haskey(tω.tags, :err) ? tω : tag(tω, (err = Ref{Real}(initerr),))
-# end
+"Tag `ω` with `err`" 
+tagerror(ω::Ω, initerr) where Ω = tagerror(traits(Ω), ω, initerr)
 
 function combinetags(::Type{Val{:err}}, a, b)
   # @show a

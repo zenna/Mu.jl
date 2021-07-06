@@ -9,13 +9,12 @@ Recursively apply contextual execution to internals of `f`"""
 function recurse end
 
 include("variable.jl")          # Random / Parametric Variables
-include("member.jl")            # Families
-include("primparam.jl")         # Primitive Parameters
-include("distributions.jl")     # Primitive Distributions
 include("multivariate.jl")      # Multivariate Distributions
-include("constant.jl")          # Constant distribution 
+include("member.jl")            # Families
+include("iid.jl")               # Independence
+include("primparam.jl")         # Primitive Parameters
+include("primdist.jl")          # Primitive Distributions
 include("pointwise.jl")         # Point wise variable application
 include("dispatch.jl")          # Contextual application
-
 
 end

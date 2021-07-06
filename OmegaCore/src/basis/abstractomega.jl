@@ -1,5 +1,5 @@
 import ..Tagging: hastag, traithastag, tag, mergetag
-import ..Util: mergef
+import ..Util: mergef, rmkey
 import ..Traits: traits
 export AbstractΩ, defΩ, defω, resolve, idtype, replacetags, like
 
@@ -12,15 +12,12 @@ export AbstractΩ, defΩ, defω, resolve, idtype, replacetags, like
 abstract type AbstractΩ end
 
 # # Tags
-"""
-`tag(ω::AbstractΩ, tags)`
-
-tag `ω` with `tags`.
-"""
+"`tag(ω::AbstractΩ, tags)` tag `ω` with `tags`."
 function tag(ω::AbstractΩ, tags, mergefunc=mergetag)
   replacetags(ω, mergef(mergefunc, ω.tags, tags))
 end
 
+"`rmtag(ω::AbstractΩ, tag)` remove `tag` from `ω`"
 rmtag(ω::AbstractΩ, tag) =
   replacetags(ω, rmkey(ω.tags, tag))
 
@@ -31,6 +28,8 @@ traithastag(t::AbstractΩ, tag) = traithastag(t.tags, tag)
 hastag(ω::AbstractΩ, tag) = hastag(ω.tags, tag)
 
 traits(ω::AbstractΩ) = traits(ω.tags) # FIXME: Do this at the type level
+
+# function tags end
 
 # # Defaults
 "Default sample space"
@@ -51,3 +50,16 @@ function ids end
 function idtype end
 
 function like end
+
+function subspace end
+
+"`proj(ω, ss)` Project `ω` onto subspace `ss`"
+function proj end
+
+## Updating Interface
+export update
+# "`update(ω, k, v)` returns ω' which is equvalent to ω except that `ω'[k] = v`"
+# function update(ω, k, v) end
+
+# "Equivalent to setindex!, returns mutated ω"
+# function update!(ω, k, v) end

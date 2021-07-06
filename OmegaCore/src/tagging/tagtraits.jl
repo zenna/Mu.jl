@@ -1,22 +1,25 @@
 
 import ..Traits
 using ..Traits: Trait
-export Err, LogPdf, Mem, Intervene, Rng, Scope, Cond
+export Err, LogEnergy, Mem, Intervene, Rng, Scope, Cond, Propose, RandMutate, IgnoreCondition
 
 # # Primitive Traits
 struct Err end
-struct LogPdf end
+struct LogEnergy end
 struct Mem end
 struct Intervene end
 struct Rng end
 struct Scope end
 struct Cond end
+struct Propose end
+struct RandMutate end
+struct IgnoreCondition end
 
 function symtotrait(x::Symbol)
   if x == :err
     Err
-  elseif x == :logpdf
-    LogPdf
+  elseif x == :logenergy
+    LogEnergy
   elseif x == :mem
     Mem
   elseif x == :intervene
@@ -27,6 +30,12 @@ function symtotrait(x::Symbol)
     Scope
   elseif x == :condition
     Cond
+  elseif x == :ignorecondition
+    IgnoreCondition
+  elseif x == :propose
+    Propose
+  elseif x == :randmutate
+    RandMutate
   else
     error("Unknown trait: $x")
   end
@@ -34,7 +43,6 @@ end
 
 @generated function Traits.traits(k::Tags{K, V}) where {K, V}
   traits_ = map(symtotrait, K)
-  Core.println(traits_)
   Trait{Union{traits_...}}()
 end
 

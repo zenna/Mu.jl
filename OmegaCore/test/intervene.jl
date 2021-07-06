@@ -87,15 +87,15 @@ function test_merge_more_than_5_interventions()
 end
 
 
-function minimal_example()
+function minimal_examplea()
   xx = 1 ~ Normal(0, 1)
   y(ω) = xx(ω) + 10
   yi = intervene(y, xx => (ω -> 200.0)) 
   yi2 = intervene(yi, xx => (ω -> 300.0))
-  @test randsample(yi2) == 200
+  @test randsample(yi2) == 210
 end
 
-function minimal_example()
+function minimal_exampleb()
   xx = 1 ~ Normal(0, 1)
   y(ω) = xx(ω) + 10
   xr = 2 ~ Normal(30, 1)
@@ -103,7 +103,6 @@ function minimal_example()
   yi2 = intervene(yi, xr => (ω -> 300.0))
   @test randsample(yi2) == 310
 end
-
 
 function test_model()
   # Normally distributed random variable with id 1
@@ -197,17 +196,49 @@ function test_intervention_logpdf()
   @test lⁱ < l
 end
 
+function test_self_intervene()
+  p = 0.7
+  q = 0.3
+  E = ~ 1 ~ Bernoulli(p)     # Execution order
+  C = ~ 2 ~ Uniform(0, 1)    # Calmness
+  N = C <ₚ q                  # Nerves
+  A = E |ₚ N                 # A shoots
+  B = E                      # B shoots on order
+  D = A |ₚ B                 # Prisoner Dies
+  cf = (D |ᵈ (A => 0)) |ᶜ D
+  # randsample(cf)
+  
+  # na1 = D |ᵈ (B => (C <ₚ q))
+  # @test isinferred(randsample, na1)
+  # na2 = D |ᵈ (C => C *ₚ 1.2)
+  # @test isinferred(randsample, na2)
+  # s = 0.4
+  # na3 = D |ᵈ (A => ω -> ifelse((3 ~ Bernoulli(s))(ω), false, A(ω)))
+  # @test isinferred(randsample, na3)
+  r = 0.8
+  na4 = D |ᵈ (A => false, B => ifelseₚ(3 ~ Bernoulli(r), false, B))
+  # ω = def\
+  # @test isinferred(randsample, na4)
+  ω = defω()
+  na4(ω)
+  # randsample(na4)
+end
+
+
 @testset "intervene" begin
-  #test_intervention()
-  #test_intervene_diff_parents()
+  test_intervention()
+  test_intervene_diff_parents()
   test_two_interventions()
   test_three_interventions()
   # test_intervention_logpdf()
-  test_mergetags()
+  # test_mergetags()
   test_merge_1()
   test_merge_2()
   test_merge_3()
   test_merge_4()
   test_changed_rettype_merge()
   test_merge_more_than_5_interventions()
+  test_self_intervene()
+  minimal_examplea()
+  minimal_exampleb()
 end 
